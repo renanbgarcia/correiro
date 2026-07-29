@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Correiro — planeje, agende e acompanhe suas publicações no Facebook e Instagram."
+    />
+    <meta name="theme-color" content="#6848e8" />
+    <link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Correiro — seu conteúdo no tempo certo</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="boot-screen" aria-live="polite">
+        <img src="/assets/logo-mark.svg" alt="" width="52" height="52" />
+        <div class="boot-spinner"></div>
+        <p>Organizando seu calendário…</p>
+      </div>
+    </div>
+    <div id="toast-region" class="toast-region" aria-live="polite"></div>
+    <div id="modal-root"></div>
+    <noscript>Ative o JavaScript para usar o Correiro.</noscript>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

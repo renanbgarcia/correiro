@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-labelledby="title">
+  <title id="title">Calendário vazio</title>
+  <rect x="88" y="36" width="304" height="222" rx="28" fill="#F0EDFF"/>
+  <rect x="112" y="72" width="256" height="160" rx="18" fill="#FFF"/>
+  <path d="M112 112h256" stroke="#DAD3FF" stroke-width="8"/>
+  <path d="M150 54v38m180-38v38" stroke="#6848E8" stroke-width="14" stroke-linecap="round"/>
+  <g fill="#E6E1FF">
+    <rect x="140" y="138" width="48" height="34" rx="9"/>
+    <rect x="202" y="138" width="48" height="34" rx="9"/>
+    <rect x="264" y="138" width="48" height="34" rx="9"/>
+    <rect x="140" y="184" width="48" height="34" rx="9"/>
+    <rect x="202" y="184" width="48" height="34" rx="9"/>
+  </g>
+  <rect x="264" y="184" width="48" height="34" rx="9" fill="#7658F6"/>
+  <circle cx="350" cy="230" r="46" fill="#FFE08C"/>
+  <path d="M350 210v40m-20-20h40" stroke="#5035C5" stroke-width="10" stroke-linecap="round"/>
+</svg>

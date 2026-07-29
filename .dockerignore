@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+.git
+.env
+storage/uploads/*
+storage/thumbnails/*
+storage/tmp/*
+coverage
+*.log

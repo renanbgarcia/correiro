@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title">
+  <title id="title">Café Aurora</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#744D35"/>
+      <stop offset="1" stop-color="#D99555"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="36" fill="url(#bg)"/>
+  <circle cx="88" cy="28" r="18" fill="#F8D99D" opacity=".7"/>
+  <path d="M31 47h48v28c0 18-10 29-24 29S31 93 31 75V47Z" fill="#FFF9EF"/>
+  <path d="M79 54h9c15 0 18 24 2 30-5 2-10 1-14-1v-8c5 3 12 4 15-2 3-6-1-11-6-11h-6V54Z" fill="#FFF9EF"/>
+  <ellipse cx="55" cy="47" rx="24" ry="6" fill="#43281C"/>
+  <path d="M50 40c-9-12 9-15 2-25M63 40c-8-11 9-14 2-23" fill="none" stroke="#FFF9EF" stroke-width="3" stroke-linecap="round"/>
+</svg>

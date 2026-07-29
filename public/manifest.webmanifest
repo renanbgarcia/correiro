@@ -1,0 +1,15 @@
+{
+  "name": "Correiro Social",
+  "short_name": "Correiro",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#6848e8",
+  "icons": [
+    {
+      "src": "/assets/logo-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

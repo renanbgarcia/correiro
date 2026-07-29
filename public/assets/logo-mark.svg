@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Correiro</title>
+  <defs>
+    <linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7658F6"/>
+      <stop offset="1" stop-color="#5336D8"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#g)"/>
+  <path d="M18 23.5c0-2.5 2-4.5 4.5-4.5h19c2.5 0 4.5 2 4.5 4.5v17c0 2.5-2 4.5-4.5 4.5h-19A4.5 4.5 0 0 1 18 40.5v-17Z" fill="#fff"/>
+  <path d="m20 23 12 9 12-9" fill="none" stroke="#6848E8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38 16v8m-4-4h8" fill="none" stroke="#FFE08C" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
