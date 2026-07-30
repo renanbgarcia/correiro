@@ -16,7 +16,7 @@
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
     "test": "node --test",
-    "check": "node --check app.js && node --check src/server.js && node --check public/app.js && node --test",
+    "check": "node --check app.js && node --check src/app.js && node --check src/server.js && node --check src/http-app.js && node --check public/app.js && node --test",
     "smoke": "node scripts/smoke.js"
   },
   "dependencies": {

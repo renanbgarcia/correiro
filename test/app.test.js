@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/http-app.js";
 
 test("aplicação Express registra as rotas sem falhar", () => {
   const app = createApp();

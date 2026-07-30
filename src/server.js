@@ -67,7 +67,7 @@ async function initializeApplication() {
     { runMigrations },
     jobsModule
   ] = await Promise.all([
-    import("./app.js"),
+    import("./http-app.js"),
     import("./db.js"),
     import("./config.js"),
     import("./lib/logger.js"),

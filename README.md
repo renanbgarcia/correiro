@@ -60,11 +60,11 @@ Use estas configurações no hPanel:
 
 - **Node.js:** 24
 - **Package manager:** pnpm
-- **Entry file:** `app.js`
+- **Entry file:** `app.js` (preferido) ou `src/app.js` quando o provedor bloquear esse caminho
 - **Build/install:** `pnpm install --frozen-lockfile`
 - **Start command**, quando solicitado: `pnpm start`
 
-Não configure o entry file como `src/app.js`: esse arquivo apenas monta o Express e não abre a porta HTTP. `app.js` inicia `src/server.js`, que chama `listen()` imediatamente usando `process.env.PORT`; migrações e worker são inicializados depois que a porta já está aberta.
+Os dois entrypoints, `app.js` e `src/app.js`, iniciam `src/server.js` sem condicionais e chamam `listen()` imediatamente usando `process.env.PORT`; migrações e worker são inicializados somente depois que a porta já está aberta. Isso permite publicar também em provedores que não deixam alterar o entry file.
 
 Cadastre no hPanel todas as variáveis de produção, especialmente MySQL, `APP_URL`, segredos de sessão e a chave do Composio. Não grave esses valores no repositório.
 
