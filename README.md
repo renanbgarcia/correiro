@@ -37,7 +37,7 @@ Requisitos:
 
 - Node.js 22 ou superior
 - MySQL 8.0 ou superior
-- pnpm
+- pnpm 11.18.0
 
 ```bash
 cp .env.example .env
