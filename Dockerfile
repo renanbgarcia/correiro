@@ -22,6 +22,7 @@ RUN apt-get update \
 
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json ./
+COPY app.js ./
 COPY migrations ./migrations
 COPY public ./public
 COPY src ./src
@@ -32,4 +33,4 @@ USER node
 
 EXPOSE 3000
 
-CMD ["node", "src/server.js"]
+CMD ["node", "app.js"]

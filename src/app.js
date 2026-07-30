@@ -23,7 +23,8 @@ import { postRouter } from "./routes/posts.js";
 import { workspaceRouter } from "./routes/workspaces.js";
 import { pingDatabase } from "./db.js";
 
-export function createApp() {
+export function createApp(options = {}) {
+  const isReady = options.isReady || (() => true);
   const app = express();
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
@@ -56,6 +57,15 @@ export function createApp() {
   app.use(csrfProtection);
 
   app.get("/api/health", noStore, async (_request, response) => {
+    if (!isReady()) {
+      return response.status(503).json({
+        ok: false,
+        error: {
+          code: "startup_in_progress",
+          message: "A aplicação ainda está inicializando."
+        }
+      });
+    }
     try {
       await pingDatabase();
       response.json({

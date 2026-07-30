@@ -56,7 +56,7 @@ services:
     command:
       - sh
       - -c
-      - node src/seed.js && node src/server.js
+      - node src/seed.js && node app.js
     ports:
       - "3000:3000"
     volumes:

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "app.js",
   "packageManager": "pnpm@11.18.0",
   "description": "Administração e agendamento de publicações para Facebook e Instagram.",
   "engines": {
@@ -10,12 +11,12 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
+    "start": "node app.js",
     "worker": "node src/worker.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
     "test": "node --test",
-    "check": "node --check src/server.js && node --check public/app.js && node --test",
+    "check": "node --check app.js && node --check src/server.js && node --check public/app.js && node --test",
     "smoke": "node scripts/smoke.js"
   },
   "dependencies": {
