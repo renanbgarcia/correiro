@@ -306,10 +306,12 @@ mediaRouter.get(
 );
 
 mediaRouter.get(
-  "/public/:id",
+  ["/public/:id/:expires/:signature", "/public/:id"],
   asyncRoute(async (request, response) => {
-    const expires = Number(request.query.expires);
-    const signature = String(request.query.sig || "");
+    const expires = Number(request.params.expires || request.query.expires);
+    const signature = String(
+      request.params.signature || request.query.sig || ""
+    );
     assert(
       Number.isFinite(expires) &&
         expires > Math.floor(Date.now() / 1000) &&
@@ -366,7 +368,8 @@ mediaRouter.delete(
 export function buildPublicMediaUrl(mediaId, ttlSeconds = 60 * 60) {
   const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
   const signature = signValue(`${mediaId}:${expires}`);
-  return `${config.appUrl}/api/media/public/${mediaId}?expires=${expires}&sig=${encodeURIComponent(
-    signature
-  )}`;
+  const appUrl = config.appUrl.replace(/\/+$/, "");
+  return `${appUrl}/api/media/public/${encodeURIComponent(
+    mediaId
+  )}/${expires}/${encodeURIComponent(signature)}`;
 }

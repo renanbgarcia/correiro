@@ -95,7 +95,7 @@ Use uma conta Business ou Creator. Contas pessoais não são aceitas pelo toolki
 
 **A publicação não consegue acessar a mídia**
 
-Configure `APP_URL` com HTTPS público e verifique se a URL assinada de `/api/media/public/:id` pode ser baixada externamente.
+Configure `APP_URL` com HTTPS público e verifique se a URL assinada de `/api/media/public/:id/:expires/:signature` pode ser baixada externamente. A assinatura fica no caminho, sem query string, porque o Instagram recusa URLs de mídia com parâmetros de consulta.
 
 **A conexão expirou ou foi revogada**
 

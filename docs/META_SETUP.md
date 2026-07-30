@@ -71,7 +71,7 @@ Carrosséis criam um container por item e depois um container pai.
 
 ## URL da mídia
 
-A Meta precisa conseguir baixar o arquivo por uma URL HTTPS pública. O Correiro gera URLs temporárias assinadas em `/api/media/public/:id`.
+A Meta precisa conseguir baixar o arquivo por uma URL HTTPS pública. O Correiro gera URLs temporárias assinadas em `/api/media/public/:id/:expires/:signature`, sem query string para manter compatibilidade com a publicação do Instagram.
 
 Em desenvolvimento local, a Meta não alcança `localhost`. Para testes reais:
 
