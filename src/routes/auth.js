@@ -500,7 +500,7 @@ authRouter.get(
       ),
       query(
         `SELECT sc.id, sc.platform, sc.external_id, sc.name, sc.username,
-                sc.status, sc.created_at
+                sc.connection_provider, sc.status, sc.created_at
          FROM social_channels sc
          JOIN workspace_members wm ON wm.workspace_id = sc.workspace_id
          WHERE wm.user_id = :userId`,
@@ -562,6 +562,8 @@ authRouter.delete(
          JOIN workspace_members wm ON wm.workspace_id = sc.workspace_id
          SET sc.encrypted_access_token = NULL,
              sc.encrypted_refresh_token = NULL,
+             sc.token_expires_at = NULL,
+             sc.provider_connection_id = NULL,
              sc.status = 'disconnected',
              sc.disconnected_at = UTC_TIMESTAMP(3)
          WHERE wm.user_id = ?`,

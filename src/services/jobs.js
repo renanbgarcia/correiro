@@ -5,6 +5,10 @@ import { createId } from "../lib/ids.js";
 import { logger } from "../lib/logger.js";
 import { buildPublicMediaUrl } from "../routes/media.js";
 import {
+  classifyComposioError,
+  publishToComposio
+} from "./composio.js";
+import {
   classifyMetaError,
   publishToMeta
 } from "./meta.js";
@@ -83,7 +87,8 @@ async function loadJob(jobId) {
        p.workspace_id, p.author_id, p.status AS post_status,
        w.publishing_paused, w.time_zone,
        sc.external_id AS channel_external_id, sc.name AS channel_name,
-       sc.encrypted_access_token, sc.status AS channel_status, sc.is_demo
+       sc.encrypted_access_token, sc.status AS channel_status, sc.is_demo,
+       sc.connection_provider, sc.provider_connection_id
      FROM publication_jobs j
      JOIN post_targets pt ON pt.id = j.target_id
      JOIN posts p ON p.id = pt.post_id
@@ -133,7 +138,7 @@ function demoResult(job) {
   };
 }
 
-function classifyError(error, platform) {
+function classifyError(error, platform, connectionProvider) {
   if (error?.permanent) {
     return {
       temporary: false,
@@ -142,6 +147,9 @@ function classifyError(error, platform) {
         "Falha simulada no Instagram. Use Repetir para reenviar somente este canal.",
       technicalMessage: error.message
     };
+  }
+  if (connectionProvider === "composio") {
+    return classifyComposioError(error, platform);
   }
   return classifyMetaError(error, platform);
 }
@@ -281,18 +289,31 @@ async function processClaimedJob(jobId) {
     const media = await loadMedia(job.target_id);
     const result = job.is_demo
       ? demoResult(job)
-      : await publishToMeta({
-          channel: {
-            platform: job.platform,
-            external_id: job.channel_external_id,
-            encrypted_access_token: job.encrypted_access_token
-          },
-          target: {
-            caption: job.caption,
-            content_type: job.content_type
-          },
-          media
-        });
+      : job.connection_provider === "composio"
+        ? await publishToComposio({
+            channel: {
+              platform: job.platform,
+              external_id: job.channel_external_id,
+              provider_connection_id: job.provider_connection_id
+            },
+            target: {
+              caption: job.caption,
+              content_type: job.content_type
+            },
+            media
+          })
+        : await publishToMeta({
+            channel: {
+              platform: job.platform,
+              external_id: job.channel_external_id,
+              encrypted_access_token: job.encrypted_access_token
+            },
+            target: {
+              caption: job.caption,
+              content_type: job.content_type
+            },
+            media
+          });
 
     await withTransaction(async (connection) => {
       await connection.execute(
@@ -341,7 +362,11 @@ async function failJob(job, error, activeAttempt = null) {
   const attemptNumber =
     activeAttempt?.attemptNumber || Number(job.attempt_count) + 1;
   const attemptId = activeAttempt?.attemptId || createId();
-  const failure = classifyError(error, job.platform);
+  const failure = classifyError(
+    error,
+    job.platform,
+    job.connection_provider
+  );
   const canRetry =
     failure.temporary && attemptNumber < Number(job.max_attempts);
   const delaySeconds = Math.min(60 * 2 ** (attemptNumber - 1), 15 * 60);

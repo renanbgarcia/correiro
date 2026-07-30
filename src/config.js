@@ -54,6 +54,17 @@ export const config = Object.freeze({
       "http://localhost:3000/api/channels/meta/callback",
     demoMode: booleanFromEnv("META_DEMO_MODE", nodeEnv !== "production")
   },
+  composio: {
+    apiKey: process.env.COMPOSIO_API_KEY || "",
+    baseUrl: process.env.COMPOSIO_BASE_URL || "",
+    callbackUrl:
+      process.env.COMPOSIO_CALLBACK_URL ||
+      `${process.env.APP_URL || "http://localhost:3000"}/api/channels/composio/callback`,
+    facebookVersion:
+      process.env.COMPOSIO_FACEBOOK_VERSION || "20260721_00",
+    instagramVersion:
+      process.env.COMPOSIO_INSTAGRAM_VERSION || "20260721_00"
+  },
   uploads: {
     maxImageBytes: numberFromEnv("MAX_IMAGE_MB", 20) * 1024 * 1024,
     maxVideoBytes: numberFromEnv("MAX_VIDEO_MB", 100) * 1024 * 1024

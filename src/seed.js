@@ -422,9 +422,11 @@ async function seed() {
     await connection.execute(
       `INSERT INTO social_channels (
         id, workspace_id, platform, external_id, name, avatar_url, account_type,
-        encrypted_access_token, permissions, status, is_demo, last_synced_at
+        connection_provider, provider_toolkit, encrypted_access_token,
+        permissions, status, is_demo, last_synced_at
       ) VALUES (?, ?, 'facebook', ?, 'Café Aurora', '/assets/channel-aurora.svg',
-                'page', ?, ?, 'connected', TRUE, UTC_TIMESTAMP(3))`,
+                'page', 'demo', 'facebook', ?, ?, 'connected', TRUE,
+                UTC_TIMESTAMP(3))`,
       [
         facebookId,
         workspaceId,
@@ -440,10 +442,10 @@ async function seed() {
     await connection.execute(
       `INSERT INTO social_channels (
         id, workspace_id, platform, external_id, name, username, avatar_url,
-        account_type, encrypted_access_token, permissions, status, is_demo,
-        last_synced_at
+        account_type, connection_provider, provider_toolkit,
+        encrypted_access_token, permissions, status, is_demo, last_synced_at
       ) VALUES (?, ?, 'instagram', ?, 'Café Aurora', 'cafeaurora',
-                '/assets/channel-aurora.svg', 'business', ?, ?,
+                '/assets/channel-aurora.svg', 'business', 'demo', 'instagram', ?, ?,
                 'connected', TRUE, UTC_TIMESTAMP(3))`,
       [
         instagramId,

@@ -3489,15 +3489,36 @@ function platformBar(item, value, max) {
 }
 
 async function renderChannelsPage() {
-  const result = await api("/channels");
+  const [result, providerResult] = await Promise.all([
+    api("/channels"),
+    api("/channels/providers")
+  ]);
   state.channels = result.data;
+  const providers = providerResult.data;
   const content = document.querySelector("#page-content");
   const query = new URLSearchParams(window.location.search);
   const metaStatus = query.get("meta");
+  const composioStatus = query.get("composio");
   if (metaStatus === "connected") {
     toast(`${query.get("count") || 0} canal(is) conectado(s) pela Meta.`);
   } else if (metaStatus === "error") {
     toast(query.get("message") || "A conexão com a Meta não foi concluída.", "error");
+  }
+  if (composioStatus === "connected") {
+    const platform =
+      query.get("platform") === "instagram" ? "Instagram" : "Facebook";
+    toast(
+      `${query.get("count") || 0} canal(is) do ${platform} conectado(s) pelo Composio.`
+    );
+  } else if (composioStatus === "error") {
+    toast(
+      query.get("message") ||
+        "A conexão pelo Composio não foi concluída.",
+      "error"
+    );
+  }
+  if (metaStatus || composioStatus) {
+    window.history.replaceState({}, "", "/?route=channels");
   }
   content.innerHTML = `
     ${pageHeader({
@@ -3505,10 +3526,10 @@ async function renderChannelsPage() {
       title: "Canais conectados",
       description:
         "Gerencie Páginas do Facebook e contas profissionais do Instagram.",
-      actions: `<button class="btn btn-primary" data-connect-meta>${icon(
+      actions: `<button class="btn btn-primary" data-open-connect>${icon(
         "plus",
         "icon-sm"
-      )} Conectar Facebook e Instagram</button>`
+      )} Conectar canais</button>`
     })}
     <section class="channels-grid">
       ${state.channels.map(channelCard).join("")}
@@ -3519,50 +3540,25 @@ async function renderChannelsPage() {
           "instagram"
         )}</div>
         <h3>Adicionar canais da Meta</h3>
-        <p>Use OAuth para descobrir as Páginas administradas e as contas profissionais associadas.</p>
+        <p>Escolha OAuth gerenciado pelo Composio ou conecte seu próprio aplicativo da Meta.</p>
         <div class="connect-actions">
-          <button class="btn btn-primary btn-sm" data-connect-meta>${icon(
+          <button class="btn btn-primary btn-sm" data-open-connect>${icon(
             "channels",
             "icon-sm"
-          )} Conectar conta real</button>
-          <button class="btn btn-secondary btn-sm" data-connect-demo>${icon(
-            "play",
-            "icon-sm"
-          )} Usar canais de demonstração</button>
+          )} Escolher conexão</button>
         </div>
       </article>
     </section>
     <div class="analytics-notice">${icon(
       "lock",
       "icon-sm"
-    )}<span>Tokens são criptografados em repouso. O Correiro nunca registra tokens completos nos logs. Contas reais exigem configuração e revisão do aplicativo na Meta.</span></div>
+    )}<span>Composio: os tokens ficam armazenados e são renovados pelo provedor; o Correiro salva somente o identificador da conexão. Meta direta: os tokens continuam criptografados no banco local.</span></div>
   `;
-  content.querySelectorAll("[data-connect-meta]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      setButtonLoading(button, true, "Abrindo Meta…");
-      try {
-        const meta = await api("/channels/meta/url");
-        window.location.assign(meta.data.url);
-      } catch (error) {
-        toast(error.message, "error");
-        setButtonLoading(button, false);
-      }
+  content.querySelectorAll("[data-open-connect]").forEach((button) => {
+    button.addEventListener("click", () => {
+      showConnectionProviderModal(providers);
     });
   });
-  content
-    .querySelector("[data-connect-demo]")
-    ?.addEventListener("click", async (event) => {
-      const button = event.currentTarget;
-      setButtonLoading(button, true, "Conectando…");
-      try {
-        await api("/channels/demo", { method: "POST" });
-        toast("Canais de demonstração conectados.");
-        await renderChannelsPage();
-      } catch (error) {
-        toast(error.message, "error");
-        setButtonLoading(button, false);
-      }
-    });
   content.querySelectorAll("[data-channel-disconnect]").forEach((button) => {
     button.addEventListener("click", async () => {
       const confirmed = await confirmAction({
@@ -3587,13 +3583,27 @@ async function renderChannelsPage() {
   });
   content.querySelectorAll("[data-channel-reconnect]").forEach((button) => {
     button.addEventListener("click", async () => {
+      const channel = state.channels.find(
+        (item) => item.id === button.dataset.channelReconnect
+      );
+      if (!channel) return;
       setButtonLoading(button, true, "Reconectando…");
       try {
-        await api(`/channels/${button.dataset.channelReconnect}/reconnect`, {
-          method: "POST"
-        });
-        toast("Reconexão iniciada.");
-        await renderChannelsPage();
+        if (channel.connectionProvider === "composio") {
+          const connection = await api(
+            `/channels/composio/url?platform=${encodeURIComponent(
+              channel.platform
+            )}`
+          );
+          window.location.assign(connection.data.url);
+        } else if (channel.isDemo || channel.connectionProvider === "demo") {
+          await api(`/channels/${channel.id}/reconnect`, { method: "POST" });
+          toast("Canal de demonstração reconectado.");
+          await renderChannelsPage();
+        } else {
+          const connection = await api("/channels/meta/url");
+          window.location.assign(connection.data.url);
+        }
       } catch (error) {
         toast(error.message, "error");
         setButtonLoading(button, false);
@@ -3604,6 +3614,21 @@ async function renderChannelsPage() {
 
 function channelCard(channel) {
   const requiresReconnect = channel.status !== "connected";
+  const connectionProvider =
+    channel.connectionProvider || (channel.isDemo ? "demo" : "direct");
+  const providerNames = {
+    composio: "Composio",
+    direct: "Meta direta",
+    demo: "Demonstração"
+  };
+  const credentialStatus =
+    connectionProvider === "composio"
+      ? "Gerenciadas pelo Composio"
+      : connectionProvider === "demo"
+        ? "Canal fictício"
+        : channel.tokenExpiresAt
+          ? `Expira ${relativeTime(channel.tokenExpiresAt)}`
+          : "Expiração não informada";
   return `
     <article class="card channel-card">
       <div class="channel-card-top">
@@ -3613,6 +3638,11 @@ function channelCard(channel) {
             ${platformBadge(channel.platform)}
             <h3>${escapeHtml(channel.name)}</h3>
             ${statusBadge(channel.status)}
+            <span class="provider-chip provider-${escapeAttribute(
+              connectionProvider
+            )}">${escapeHtml(
+              providerNames[connectionProvider] || "Meta direta"
+            )}</span>
           </div>
           <p>${
             channel.platform === "instagram"
@@ -3627,13 +3657,9 @@ function channelCard(channel) {
         <div class="channel-info-item"><span>Última sincronização</span><strong>${formatDateTime(
           channel.lastSyncedAt
         )}</strong></div>
-        <div class="channel-info-item"><span>Token</span><strong>${
-          channel.tokenExpiresAt
-            ? `Expira ${relativeTime(channel.tokenExpiresAt)}`
-            : channel.isDemo
-              ? "Demonstração"
-              : "Expiração não informada"
-        }</strong></div>
+        <div class="channel-info-item"><span>Credenciais</span><strong>${escapeHtml(
+          credentialStatus
+        )}</strong></div>
       </div>
       <div class="channel-permissions">
         ${(channel.permissions || [])
@@ -3667,6 +3693,139 @@ function channelCard(channel) {
       </div>
     </article>
   `;
+}
+
+function showConnectionProviderModal(providers) {
+  const composioReady = Boolean(providers.composio?.configured);
+  const directReady = Boolean(providers.direct?.configured);
+  const demoReady = Boolean(providers.demo?.configured);
+  showModal(
+    `
+      <div class="modal-header">
+        <div>
+          <h2>Como deseja conectar?</h2>
+          <p>Você pode trocar de provedor depois reconectando o canal.</p>
+        </div>
+        <button class="btn btn-ghost btn-icon btn-sm" data-close-modal aria-label="Fechar">${icon(
+          "x",
+          "icon-sm"
+        )}</button>
+      </div>
+      <div class="modal-body">
+        <div class="provider-choice-list">
+          <article class="provider-choice provider-choice-featured">
+            <div class="provider-choice-heading">
+              <span class="provider-choice-icon">${icon("lock")}</span>
+              <div>
+                <div class="provider-choice-title">
+                  <h3>Composio</h3>
+                  <span class="provider-recommended">Recomendado</span>
+                </div>
+                <p>OAuth hospedado e tokens gerenciados. Você só configura <code>COMPOSIO_API_KEY</code>, sem App ID ou App Secret da Meta.</p>
+              </div>
+            </div>
+            <div class="provider-platform-actions">
+              <button class="btn btn-primary btn-sm" data-connect-composio="facebook" ${
+                composioReady ? "" : "disabled"
+              }>${platformBadge("facebook")} Conectar Facebook</button>
+              <button class="btn btn-primary btn-sm" data-connect-composio="instagram" ${
+                composioReady ? "" : "disabled"
+              }>${platformBadge("instagram")} Conectar Instagram</button>
+            </div>
+            <small>${
+              composioReady
+                ? "Facebook e Instagram usam autorizações separadas no Composio."
+                : "Adicione COMPOSIO_API_KEY ao ambiente do servidor para habilitar."
+            }</small>
+          </article>
+
+          <article class="provider-choice">
+            <div class="provider-choice-heading">
+              <span class="provider-choice-icon">${icon("settings")}</span>
+              <div>
+                <div class="provider-choice-title"><h3>Meta direta</h3><span class="provider-advanced">Avançado</span></div>
+                <p>Usa seu próprio aplicativo da Meta e armazena os tokens criptografados no Correiro.</p>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm provider-main-action" data-connect-direct ${
+              directReady ? "" : "disabled"
+            }>${icon("external", "icon-sm")} Autorizar na Meta</button>
+            <small>${
+              directReady
+                ? "META_APP_ID e META_APP_SECRET estão configurados."
+                : "Configure META_APP_ID e META_APP_SECRET para habilitar."
+            }</small>
+          </article>
+
+          <article class="provider-choice provider-choice-compact">
+            <div class="provider-choice-heading">
+              <span class="provider-choice-icon">${icon("play")}</span>
+              <div>
+                <div class="provider-choice-title"><h3>Demonstração</h3></div>
+                <p>Adiciona canais fictícios para testar agendamento e falhas sem publicar.</p>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm provider-main-action" data-connect-demo ${
+              demoReady ? "" : "disabled"
+            }>${icon("plus", "icon-sm")} Adicionar canais demo</button>
+          </article>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Fechar</button>
+      </div>
+    `,
+    "modal-lg"
+  );
+
+  modalRoot
+    .querySelectorAll("[data-connect-composio]")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        setButtonLoading(button, true, "Abrindo Composio…");
+        try {
+          const connection = await api(
+            `/channels/composio/url?platform=${encodeURIComponent(
+              button.dataset.connectComposio
+            )}`
+          );
+          window.location.assign(connection.data.url);
+        } catch (error) {
+          toast(error.message, "error");
+          setButtonLoading(button, false);
+        }
+      });
+    });
+
+  modalRoot
+    .querySelector("[data-connect-direct]")
+    ?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      setButtonLoading(button, true, "Abrindo Meta…");
+      try {
+        const connection = await api("/channels/meta/url");
+        window.location.assign(connection.data.url);
+      } catch (error) {
+        toast(error.message, "error");
+        setButtonLoading(button, false);
+      }
+    });
+
+  modalRoot
+    .querySelector("[data-connect-demo]")
+    ?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      setButtonLoading(button, true, "Conectando…");
+      try {
+        await api("/channels/demo", { method: "POST" });
+        closeModal();
+        toast("Canais de demonstração conectados.");
+        await renderChannelsPage();
+      } catch (error) {
+        toast(error.message, "error");
+        setButtonLoading(button, false);
+      }
+    });
 }
 
 async function renderNotificationsPage() {

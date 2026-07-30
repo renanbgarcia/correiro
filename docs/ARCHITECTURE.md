@@ -45,7 +45,7 @@ Uma falha do Instagram não bloqueia o Facebook. O estado geral é derivado:
 3. busca um job vencido com `FOR UPDATE SKIP LOCKED`;
 4. grava `locked_at` e `locked_by`;
 5. cria uma `publication_attempt`;
-6. chama o adaptador do provedor;
+6. chama o adaptador selecionado no canal (`composio`, `direct` ou `demo`);
 7. conclui, agenda nova tentativa ou marca falha definitiva.
 
 O backoff começa em 60 segundos e dobra até 15 minutos. O número padrão de tentativas é quatro.
@@ -78,6 +78,18 @@ A tentativa grava:
 
 Tokens nunca entram no payload de auditoria.
 
+## Provedores de conexão
+
+Cada `social_channel` registra seu `connection_provider`:
+
+- `composio`: guarda `provider_connection_id` e executa ferramentas com versão fixada; tokens e renovação ficam no Composio;
+- `direct`: guarda o token da Página cifrado em AES-256-GCM e chama o Graph API;
+- `demo`: usa o mesmo worker e persistência, mas gera um resultado simulado.
+
+O worker escolhe o adaptador a partir do canal já persistido. Isso permite que um workspace misture canais Composio e diretos sem alterar o contrato de posts, destinos, retentativas ou idempotência.
+
+O início do Connect Link gera um estado opaco com validade curta em `provider_connection_requests`. O callback exige a mesma sessão, workspace, usuário e estado ainda não utilizado antes de aceitar a connected account. O banco nunca recebe a credencial OAuth gerenciada.
+
 ## Datas e fuso
 
 O cliente envia data local e fuso IANA. O servidor converte para UTC antes de persistir. A interface volta a formatar em `workspace.time_zone`.
@@ -104,7 +116,8 @@ Em produção, recomenda-se substituir o filesystem por storage de objetos e upl
 - cookie `HttpOnly`, `SameSite=Lax` e `Secure` em produção;
 - CSRF em mutações autenticadas;
 - rate limit nos fluxos de credenciais;
-- AES-256-GCM para tokens sociais;
+- AES-256-GCM para tokens da conexão direta;
+- somente IDs de conexão, sem tokens sociais, para canais Composio;
 - escopo por associação ao workspace;
 - exportação em JSON;
 - exclusão com confirmação de senha, revogação de sessões e anonimização.

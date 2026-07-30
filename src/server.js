@@ -25,7 +25,8 @@ server.listen(config.port, () => {
     environment: config.nodeEnv,
     url: config.appUrl,
     inlineWorker: config.worker.inline,
-    metaDemoMode: config.meta.demoMode
+    metaDemoMode: config.meta.demoMode,
+    composioConfigured: Boolean(config.composio.apiKey)
   });
 });
 

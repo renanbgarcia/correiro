@@ -60,8 +60,11 @@ pnpm worker
 - Senhas derivadas com `scrypt`; sessões opacas em cookies `HttpOnly`.
 - Proteção CSRF, cabeçalhos seguros, rate limit de autenticação e isolamento por workspace.
 - Workspace com fuso IANA, preferências de e-mail e pausa global da fila.
-- OAuth da Meta, descoberta de Páginas e contas profissionais associadas.
-- Tokens sociais cifrados em AES-256-GCM e logs sanitizados.
+- OAuth gerenciado pelo Composio sem exigir App ID ou App Secret da Meta.
+- Integração direta com aplicativo próprio da Meta como opção avançada.
+- Descoberta de Páginas e contas profissionais, com provedor visível por canal.
+- Tokens diretos cifrados em AES-256-GCM; no Composio, o banco guarda somente o ID da conexão.
+- Logs sanitizados sem credenciais completas.
 - Canais de demonstração para validação sem credenciais externas.
 - Compositor com texto compartilhado, versão por canal e mídia por destino.
 - Imagem, vídeo/Reel e carrossel básico; validação específica por plataforma.
@@ -84,9 +87,27 @@ Para demonstrar publicação parcial, inclua `#simularfalha` na legenda e seleci
 
 O modo de demonstração é recusado pela validação de configuração quando `NODE_ENV=production`.
 
-## Integração real com a Meta
+## Integração real: Composio ou Meta direta
 
-Consulte [docs/META_SETUP.md](docs/META_SETUP.md). Em resumo:
+O caminho mais simples é o Composio. Crie uma chave de projeto e configure:
+
+```env
+COMPOSIO_API_KEY=sua-chave-do-projeto
+COMPOSIO_CALLBACK_URL=http://localhost:3000/api/channels/composio/callback
+```
+
+Não é necessário preencher `META_APP_ID` nem `META_APP_SECRET`. Na tela **Canais**, escolha **Composio** e autorize Facebook e Instagram separadamente. O fluxo usa Connect Links hospedados e mantém as credenciais sociais no Composio.
+
+Com Docker Compose, salve a chave no arquivo `.env` da raiz ou defina a variável antes do comando:
+
+```powershell
+$env:COMPOSIO_API_KEY="sua-chave-do-projeto"
+docker compose up --build
+```
+
+Consulte [docs/COMPOSIO_SETUP.md](docs/COMPOSIO_SETUP.md) para configuração, segurança, versões fixadas e limitações de contas.
+
+Se preferir usar um aplicativo próprio, consulte [docs/META_SETUP.md](docs/META_SETUP.md). Em resumo:
 
 1. Crie um aplicativo em Meta for Developers.
 2. Configure Facebook Login e o produto da API do Instagram.
@@ -95,7 +116,7 @@ Consulte [docs/META_SETUP.md](docs/META_SETUP.md). Em resumo:
 5. Use storage acessível por HTTPS para que a Meta consiga buscar imagens e vídeos.
 6. Passe por verificação empresarial e App Review para as permissões públicas.
 
-Sem App Review, contas reais fora das funções autorizadas do aplicativo podem não concluir o fluxo. Isso é uma dependência externa, não um bloqueio do modo demo.
+Sem App Review, contas reais fora das funções autorizadas do aplicativo próprio podem não concluir o fluxo direto. Isso não impede o modo Composio nem o modo demo.
 
 ## Arquitetura
 
@@ -111,8 +132,9 @@ Express API ───────────────► MySQL 8
      │
      ├─► armazenamento protegido de mídia
      │
-     └─► worker durável ─────► Meta Graph API
-              │
+     └─► worker durável ─────► adaptador do provedor
+              │                    ├─► Composio ─► Meta
+              │                    └─► Meta Graph API direta
               └─ um job independente por canal
 ```
 
@@ -138,11 +160,12 @@ Antes de expor a aplicação:
 - gere segredos independentes e longos;
 - desative `META_DEMO_MODE`;
 - use URLs públicas HTTPS para mídia destinada à Meta;
+- mantenha as versões dos toolkits do Composio fixadas e atualize-as somente após teste;
 - configure SMTP;
 - execute servidor e workers como processos separados;
 - configure backup do MySQL e retenção da mídia;
 - conecte logs JSON a um agregador e alertas à taxa de falhas;
-- faça a verificação empresarial e a revisão das permissões da Meta;
+- para integração direta, faça a verificação empresarial e a revisão das permissões da Meta;
 - valide formatos reais em contas de teste do Facebook e Instagram.
 
-O projeto comprova o fluxo funcional localmente. Publicação real em produção continua condicionada às credenciais, permissões, revisão e contas de teste da Meta.
+O projeto comprova o fluxo funcional localmente. Publicação real em produção continua condicionada a uma conexão ativa, às permissões concedidas e às regras das contas do Facebook e Instagram.

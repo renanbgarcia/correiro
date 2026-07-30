@@ -33,7 +33,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      APP_URL: http://localhost:3000
+      APP_URL: ${APP_URL:-http://localhost:3000}
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DATABASE: correiro
@@ -41,7 +41,16 @@ services:
       MYSQL_PASSWORD: correiro_local
       SESSION_SECRET: desenvolvimento-local-sessao-corriero-2026-troque
       TOKEN_ENCRYPTION_KEY: desenvolvimento-local-token-correiro-2026-troque
-      META_DEMO_MODE: "true"
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+      META_REDIRECT_URI: ${META_REDIRECT_URI:-http://localhost:3000/api/channels/meta/callback}
+      META_DEMO_MODE: "${META_DEMO_MODE:-true}"
+      COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
+      COMPOSIO_BASE_URL: ${COMPOSIO_BASE_URL:-}
+      COMPOSIO_CALLBACK_URL: ${COMPOSIO_CALLBACK_URL:-http://localhost:3000/api/channels/composio/callback}
+      COMPOSIO_FACEBOOK_VERSION: ${COMPOSIO_FACEBOOK_VERSION:-20260721_00}
+      COMPOSIO_INSTAGRAM_VERSION: ${COMPOSIO_INSTAGRAM_VERSION:-20260721_00}
       WORKER_INLINE: "true"
       STORAGE_DIR: ./storage
     command:

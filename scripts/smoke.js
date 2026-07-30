@@ -69,9 +69,10 @@ async function smoke() {
     method: "POST",
     body: { email, password }
   });
-  const [channelsResult, mediaResult] = await Promise.all([
+  const [channelsResult, mediaResult, providersResult] = await Promise.all([
     request("/channels"),
-    request("/media?limit=10")
+    request("/media?limit=10"),
+    request("/channels/providers")
   ]);
   const channels = channelsResult.data.filter(
     (channel) => channel.status === "connected"
@@ -85,6 +86,10 @@ async function smoke() {
   const media = mediaResult.data[0];
   assert.ok(facebook, "Canal Facebook conectado");
   assert.ok(instagram, "Canal Instagram conectado");
+  assert.equal(facebook.connectionProvider, "demo");
+  assert.equal(instagram.connectionProvider, "demo");
+  assert.equal(typeof providersResult.data.composio.configured, "boolean");
+  assert.equal(providersResult.data.demo.configured, true);
   assert.ok(media, "Mídia de demonstração disponível");
 
   const caption =
@@ -147,6 +152,7 @@ async function smoke() {
         "login",
         "workspace scoping",
         "channels",
+        "connection providers",
         "media",
         "publish now",
         "partial publication",

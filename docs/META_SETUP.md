@@ -1,6 +1,8 @@
 # Configuração da Meta
 
-O modo demo funciona sem credenciais. Para contas reais, configure um aplicativo próprio no [Meta for Developers](https://developers.facebook.com/).
+Este documento cobre a opção avançada com aplicativo próprio. Para conectar contas reais sem `META_APP_ID` e `META_APP_SECRET`, use a [conexão gerenciada pelo Composio](COMPOSIO_SETUP.md).
+
+O modo demo funciona sem credenciais. Para usar a integração direta, configure um aplicativo próprio no [Meta for Developers](https://developers.facebook.com/).
 
 ## Produtos e callback
 
