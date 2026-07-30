@@ -16,8 +16,10 @@ import { createNotification } from "./notifications.js";
 import { refreshPostStatus } from "./post-status.js";
 
 const workerId = `${os.hostname()}:${process.pid}:${createId().slice(0, 8)}`;
+const STALE_RECOVERY_INTERVAL_MS = 60 * 1000;
 let stopping = false;
 let loopPromise;
+let lastStaleRecoveryAt = 0;
 
 export async function enqueueTarget(
   executor,
@@ -53,6 +55,7 @@ async function recoverStaleJobs() {
      WHERE status = 'locked'
        AND locked_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 10 MINUTE)`
   );
+  lastStaleRecoveryAt = Date.now();
 }
 
 async function claimJob() {
@@ -467,6 +470,11 @@ async function workerLoop() {
     concurrency: config.worker.concurrency
   });
   while (!stopping) {
+    if (
+      Date.now() - lastStaleRecoveryAt >= STALE_RECOVERY_INTERVAL_MS
+    ) {
+      await recoverStaleJobs();
+    }
     const jobIds = await Promise.all(
       Array.from({ length: config.worker.concurrency }, () => claimJob())
     );

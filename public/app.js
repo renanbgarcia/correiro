@@ -24,7 +24,9 @@ const state = {
   },
   composer: null,
   mediaCache: null,
-  notificationPoll: null
+  notificationPoll: null,
+  postDetailPoll: null,
+  postDetailPollGeneration: 0
 };
 
 const ICONS = {
@@ -367,7 +369,16 @@ function setButtonLoading(button, loading, label) {
   }
 }
 
+function stopPostDetailPoll() {
+  if (state.postDetailPoll !== null) {
+    window.clearTimeout(state.postDetailPoll);
+    state.postDetailPoll = null;
+  }
+  state.postDetailPollGeneration += 1;
+}
+
 function showModal(content, className = "") {
+  stopPostDetailPoll();
   modalRoot.innerHTML = `
     <div class="modal-backdrop" data-modal-backdrop>
       <section class="modal ${className}" role="dialog" aria-modal="true">
@@ -390,6 +401,7 @@ function handleModalEscape(event) {
 }
 
 function closeModal() {
+  stopPostDetailPoll();
   modalRoot.innerHTML = "";
   document.removeEventListener("keydown", handleModalEscape);
 }
@@ -1209,7 +1221,10 @@ function channelHealthItem(channel) {
 function bindPostOpeners(root = document) {
   root.querySelectorAll("[data-open-post]").forEach((element) => {
     element.addEventListener("click", (event) => {
-      if (event.target.closest("button, a")) return;
+      const interactiveTarget = event.target.closest("button, a");
+      if (interactiveTarget && interactiveTarget !== element) return;
+      event.preventDefault();
+      event.stopPropagation();
       openPostDetail(element.dataset.openPost);
     });
   });
@@ -2824,10 +2839,54 @@ async function openPostDetail(postId) {
   try {
     const result = await api(`/posts/${postId}`);
     paintPostDetail(result.data);
+    schedulePostDetailPoll(result.data);
   } catch (error) {
     closeModal();
     toast(error.message, "error");
   }
+}
+
+function schedulePostDetailPoll(post) {
+  if (state.postDetailPoll !== null) {
+    window.clearTimeout(state.postDetailPoll);
+    state.postDetailPoll = null;
+  }
+
+  if (post.status !== "processing") {
+    if (state.route === "posts") void renderPostsPage();
+    if (state.route === "calendar") void renderCalendar();
+    return;
+  }
+
+  const generation = state.postDetailPollGeneration;
+  state.postDetailPoll = window.setTimeout(async () => {
+    state.postDetailPoll = null;
+    if (
+      generation !== state.postDetailPollGeneration ||
+      !modalRoot.querySelector(".modal")
+    ) {
+      return;
+    }
+
+    try {
+      const updated = await api(`/posts/${post.id}`);
+      if (
+        generation !== state.postDetailPollGeneration ||
+        !modalRoot.querySelector(".modal")
+      ) {
+        return;
+      }
+      paintPostDetail(updated.data);
+      schedulePostDetailPoll(updated.data);
+    } catch {
+      if (
+        generation === state.postDetailPollGeneration &&
+        modalRoot.querySelector(".modal")
+      ) {
+        schedulePostDetailPoll(post);
+      }
+    }
+  }, 3000);
 }
 
 function paintPostDetail(post) {
@@ -3012,6 +3071,7 @@ function paintPostDetail(post) {
     });
   modalRoot.querySelectorAll("[data-retry-target]").forEach((button) => {
     button.addEventListener("click", async () => {
+      stopPostDetailPoll();
       setButtonLoading(button, true, "Reenviando…");
       try {
         await api(`/posts/${post.id}/retry/${button.dataset.retryTarget}`, {
@@ -3020,6 +3080,7 @@ function paintPostDetail(post) {
         toast("Canal reenviado para a fila.");
         const updated = await api(`/posts/${post.id}`);
         paintPostDetail(updated.data);
+        schedulePostDetailPoll(updated.data);
       } catch (error) {
         toast(error.message, "error");
         setButtonLoading(button, false);

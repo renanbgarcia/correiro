@@ -97,8 +97,8 @@ async function createDemoMedia(workspaceId, userId) {
         userId,
         originalName: visual.name,
         storageName,
-        storagePath,
-        thumbnailPath,
+        storagePath: path.posix.join("uploads", storageName),
+        thumbnailPath: path.posix.join("thumbnails", `${id}.webp`),
         sizeBytes: stat.size
       }
     );

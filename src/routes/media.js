@@ -72,12 +72,37 @@ async function inspectFile(filePath) {
 }
 
 function safeStoragePath(candidate) {
-  const resolved = path.resolve(candidate);
-  const storageRoot = `${path.resolve(config.storageDir)}${path.sep}`;
-  if (!resolved.startsWith(storageRoot)) {
+  const storageRoot = path.resolve(config.storageDir);
+  const resolved = path.resolve(storageRoot, candidate);
+  const relative = path.relative(storageRoot, resolved);
+  if (
+    !relative ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
     throw new AppError(400, "invalid_path", "Caminho de mídia inválido.");
   }
   return resolved;
+}
+
+function safeStorageName(candidate) {
+  const storageName = String(candidate || "");
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(storageName)) {
+    throw new AppError(400, "invalid_path", "Caminho de mídia inválido.");
+  }
+  return storageName;
+}
+
+export function resolveMediaStoragePath(media, variant = "original") {
+  if (variant === "thumbnail") {
+    return safeStoragePath(
+      path.join("thumbnails", `${safeStorageName(media.id)}.webp`)
+    );
+  }
+  return safeStoragePath(
+    path.join("uploads", safeStorageName(media.storage_name))
+  );
 }
 
 function serializeMedia(row) {
@@ -187,7 +212,7 @@ mediaRouter.post(
 
       const id = createId();
       const storageName = `${id}${detected.extension}`;
-      finalPath = path.join(uploadsDir, storageName);
+      finalPath = resolveMediaStoragePath({ storage_name: storageName });
       await fsp.rename(temporaryPath, finalPath);
 
       let width = null;
@@ -197,7 +222,7 @@ mediaRouter.post(
         const metadata = await sharp(finalPath).metadata();
         width = metadata.width || null;
         height = metadata.height || null;
-        thumbnailPath = path.join(thumbnailsDir, `${id}.webp`);
+        thumbnailPath = resolveMediaStoragePath({ id }, "thumbnail");
         await sharp(finalPath)
           .rotate()
           .resize(640, 640, { fit: "inside", withoutEnlargement: true })
@@ -226,8 +251,10 @@ mediaRouter.post(
             .normalize("NFKC")
             .slice(0, 255),
           storageName,
-          storagePath: finalPath,
-          thumbnailPath,
+          storagePath: path.posix.join("uploads", storageName),
+          thumbnailPath: thumbnailPath
+            ? path.posix.join("thumbnails", `${id}.webp`)
+            : null,
           sizeBytes: request.file.size,
           width,
           height
@@ -283,7 +310,7 @@ mediaRouter.get(
     const media = await findAuthorizedMedia(request);
     streamFile(
       response,
-      media.storage_path,
+      resolveMediaStoragePath(media),
       media.mime_type,
       media.original_name
     );
@@ -296,10 +323,11 @@ mediaRouter.get(
   requireWorkspace,
   asyncRoute(async (request, response) => {
     const media = await findAuthorizedMedia(request);
+    const hasThumbnail = Boolean(media.thumbnail_path);
     streamFile(
       response,
-      media.thumbnail_path || media.storage_path,
-      media.thumbnail_path ? "image/webp" : media.mime_type,
+      resolveMediaStoragePath(media, hasThumbnail ? "thumbnail" : "original"),
+      hasThumbnail ? "image/webp" : media.mime_type,
       `miniatura-${media.original_name}`
     );
   })
@@ -329,7 +357,7 @@ mediaRouter.get(
     assert(rows[0], 404, "media_not_found", "Mídia não encontrada.");
     streamFile(
       response,
-      rows[0].storage_path,
+      resolveMediaStoragePath(rows[0]),
       rows[0].mime_type,
       rows[0].original_name
     );
