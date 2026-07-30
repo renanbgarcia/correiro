@@ -5,6 +5,7 @@ import {
   ComposioApiError,
   classifyComposioError,
   createComposioConnectLink,
+  discoverComposioChannels,
   parseFacebookPages,
   parseInstagramAccount,
   publishToComposio
@@ -107,6 +108,43 @@ test("cria Connect Link com autenticação gerenciada e sem fluxo legado", async
   assert.equal(calls[1][3].allowMultiple, true);
 });
 
+test("envia o usuario dono da conexao ao descobrir canais", async () => {
+  const calls = [];
+  const channels = await discoverComposioChannels(
+    {
+      platform: "facebook",
+      connectionId: "ca_fb_1",
+      providerUserId: "correiro-workspace-ws_1"
+    },
+    {
+      client: {
+        tools: {
+          async execute(tool, body) {
+            calls.push({ tool, body });
+            return {
+              successful: true,
+              error: null,
+              data: {
+                data: [
+                  {
+                    id: "page_123",
+                    name: "Cafe Aurora",
+                    tasks: ["CREATE_CONTENT"]
+                  }
+                ]
+              }
+            };
+          }
+        }
+      }
+    }
+  );
+
+  assert.equal(channels.length, 1);
+  assert.equal(calls[0].body.connectedAccountId, "ca_fb_1");
+  assert.equal(calls[0].body.userId, "correiro-workspace-ws_1");
+});
+
 test("publica foto no Facebook usando conexão e versão fixadas", async () => {
   const calls = [];
   const client = {
@@ -125,6 +163,7 @@ test("publica foto no Facebook usando conexão e versão fixadas", async () => {
 
   const result = await publishToComposio(
     {
+      workspaceId: "ws_1",
       channel: {
         platform: "facebook",
         external_id: "page_123",
@@ -144,6 +183,7 @@ test("publica foto no Facebook usando conexão e versão fixadas", async () => {
   assert.equal(result.externalId, "page_123_789");
   assert.equal(calls[0].tool, "FACEBOOK_CREATE_PHOTO_POST");
   assert.equal(calls[0].body.connectedAccountId, "ca_fb_1");
+  assert.equal(calls[0].body.userId, "correiro-workspace-ws_1");
   assert.equal(calls[0].body.version, config.composio.facebookVersion);
   assert.equal(calls[0].body.arguments.page_id, "page_123");
   assert.equal(
@@ -187,6 +227,7 @@ test("cria e publica contêiner no Instagram usando o Composio", async () => {
 
   const result = await publishToComposio(
     {
+      workspaceId: "ws_1",
       channel: {
         platform: "instagram",
         external_id: "ig_456",
@@ -216,6 +257,7 @@ test("cria e publica contêiner no Instagram usando o Composio", async () => {
     ]
   );
   assert.equal(calls[0].body.version, config.composio.instagramVersion);
+  assert.equal(calls[0].body.userId, "correiro-workspace-ws_1");
   assert.equal(calls[0].body.arguments.ig_user_id, "ig_456");
   assert.equal(calls[1].body.arguments.creation_id, "container_123");
 });

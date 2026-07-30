@@ -434,7 +434,8 @@ channelRouter.get(
 
       const discovered = await discoverComposioChannels({
         platform: connectionRequest.platform,
-        connectionId: connectionRequest.provider_connection_id
+        connectionId: connectionRequest.provider_connection_id,
+        providerUserId: connectionRequest.provider_user_id
       });
       assert(
         discovered.length,

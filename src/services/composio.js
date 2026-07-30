@@ -268,7 +268,14 @@ function mapSdkError(error, context = {}) {
 }
 
 async function executeTool(
-  { platform, tool, connectionId, arguments: toolArguments, timeoutMs = 45_000 },
+  {
+    platform,
+    tool,
+    connectionId,
+    providerUserId,
+    arguments: toolArguments,
+    timeoutMs = 45_000
+  },
   options = {}
 ) {
   const client = clientFrom(options);
@@ -277,6 +284,7 @@ async function executeTool(
       tool,
       {
         connectedAccountId: connectionId,
+        userId: providerUserId,
         version: TOOL_VERSION_BY_PLATFORM[platform],
         arguments: toolArguments
       },
@@ -417,6 +425,7 @@ export async function discoverComposioChannels(input, options = {}) {
         platform: "facebook",
         tool: "FACEBOOK_LIST_MANAGED_PAGES",
         connectionId: input.connectionId,
+        providerUserId: input.providerUserId,
         arguments: {
           user_id: "me",
           limit: 100,
@@ -438,6 +447,7 @@ export async function discoverComposioChannels(input, options = {}) {
         platform: "instagram",
         tool: "INSTAGRAM_GET_USER_INFO",
         connectionId: input.connectionId,
+        providerUserId: input.providerUserId,
         arguments: {
           ig_user_id: "me",
           graph_api_version: config.meta.graphVersion
@@ -494,6 +504,7 @@ async function publishFacebook(input, options) {
       platform: "facebook",
       tool,
       connectionId: input.channel.provider_connection_id,
+      providerUserId: input.providerUserId,
       arguments: toolArguments,
       timeoutMs: first?.media_type === "video" ? 150_000 : 60_000
     },
@@ -524,6 +535,7 @@ async function createInstagramContainer(input, mediaItem, options = {}) {
       platform: "instagram",
       tool: "INSTAGRAM_POST_IG_USER_MEDIA",
       connectionId: input.channel.provider_connection_id,
+      providerUserId: input.providerUserId,
       arguments: {
         ig_user_id: input.channel.external_id,
         ...(isVideo
@@ -622,6 +634,7 @@ async function publishInstagram(input, options) {
         platform: "instagram",
         tool: "INSTAGRAM_POST_IG_USER_MEDIA",
         connectionId: input.channel.provider_connection_id,
+        providerUserId: input.providerUserId,
         arguments: {
           ig_user_id: input.channel.external_id,
           media_type: "CAROUSEL",
@@ -652,6 +665,7 @@ async function publishInstagram(input, options) {
       platform: "instagram",
       tool: "INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH",
       connectionId: input.channel.provider_connection_id,
+      providerUserId: input.providerUserId,
       arguments: {
         ig_user_id: input.channel.external_id,
         creation_id: creationId,
@@ -693,11 +707,24 @@ export async function publishToComposio(input, options = {}) {
       connectionExpired: true
     });
   }
+  const providerUserId =
+    input.providerUserId ||
+    (input.workspaceId ? composioUserId(input.workspaceId) : null);
+  if (!providerUserId) {
+    throw new ComposioApiError(
+      "Identificador do workspace ausente para executar pelo Composio.",
+      {
+        code: "composio_provider_user_missing",
+        httpStatus: 500
+      }
+    );
+  }
+  const executableInput = { ...input, providerUserId };
   if (input.channel.platform === "facebook") {
-    return publishFacebook(input, options);
+    return publishFacebook(executableInput, options);
   }
   if (input.channel.platform === "instagram") {
-    return publishInstagram(input, options);
+    return publishInstagram(executableInput, options);
   }
   throw new ComposioApiError(
     `Plataforma não suportada: ${input.channel.platform}`,

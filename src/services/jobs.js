@@ -291,6 +291,7 @@ async function processClaimedJob(jobId) {
       ? demoResult(job)
       : job.connection_provider === "composio"
         ? await publishToComposio({
+            workspaceId: job.workspace_id,
             channel: {
               platform: job.platform,
               external_id: job.channel_external_id,
